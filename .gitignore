@@ -17,3 +17,7 @@ lambda/*.zip
 # Temporary test outputs
 response.json
 *.log
+
+# Career & Personal Notes
+docs/CAREER_PORTFOLIO.md
+

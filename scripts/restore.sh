@@ -47,11 +47,15 @@ aws s3 cp "${S3_URI}" "${RESTORE_STAGING}/${ARCHIVE_FILENAME}"
 echo "[INFO] Downloading checksum..."
 aws s3 cp "${S3_URI}.sha256" "${RESTORE_STAGING}/${ARCHIVE_FILENAME}.sha256"
 
-# 2. Checksum Verification
+# 2. Checksum Verification (Path-independent pure hash comparison)
 echo "[INFO] Verifying SHA-256 checksum..."
-cd "${RESTORE_STAGING}"
-if sha256sum --check "${ARCHIVE_FILENAME}.sha256"; then
-    echo "[SUCCESS] Checksum verification PASSED!"
+EXPECTED_HASH=$(awk '{print $1}' "${RESTORE_STAGING}/${ARCHIVE_FILENAME}.sha256")
+ACTUAL_HASH=$(sha256sum "${RESTORE_STAGING}/${ARCHIVE_FILENAME}" | awk '{print $1}')
+echo "[INFO] Expected Hash  : ${EXPECTED_HASH}"
+echo "[INFO] Calculated Hash: ${ACTUAL_HASH}"
+
+if [ "${EXPECTED_HASH}" = "${ACTUAL_HASH}" ]; then
+    echo "[SUCCESS] Checksum verification PASSED! Zero data corruption."
 else
     echo "[ERROR] Checksum verification FAILED! Backup is corrupted."
     exit 3

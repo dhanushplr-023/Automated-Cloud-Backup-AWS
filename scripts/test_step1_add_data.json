@@ -1,0 +1,16 @@
+{
+  "InstanceIds": ["i-0235c395276dc0851"],
+  "DocumentName": "AWS-RunShellScript",
+  "Parameters": {
+    "commands": [
+      "echo '104,Elon,Musk,2026-11-18,active' >> /var/data/important/customers.csv",
+      "cat << 'EOF' > /var/data/important/new_orders.json",
+      "{\"order_id\": \"ORD-999\", \"amount\": 499.00, \"currency\": \"USD\", \"status\": \"paid\"}",
+      "EOF",
+      "echo '=== CURRENT FILES ON SERVER ==='",
+      "ls -l /var/data/important",
+      "echo '=== CUSTOMERS CONTENT ==='",
+      "cat /var/data/important/customers.csv"
+    ]
+  }
+}
