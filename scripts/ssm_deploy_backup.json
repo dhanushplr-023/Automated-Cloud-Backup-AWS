@@ -1,0 +1,43 @@
+{
+  "InstanceIds": ["i-0235c395276dc0851"],
+  "DocumentName": "AWS-RunShellScript",
+  "Parameters": {
+    "commands": [
+      "mkdir -p /opt/backup/logs",
+      "cat << 'EOF' > /opt/backup/backup.sh",
+      "#!/bin/bash",
+      "set -euo pipefail",
+      "SOURCE_DIR=\"/var/data/important\"",
+      "BACKUP_DIR=\"/tmp/backup_staging\"",
+      "LOG_DIR=\"/opt/backup/logs\"",
+      "S3_BUCKET=\"cloud-backup-vault-9k6tfc\"",
+      "TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')",
+      "DATE_PREFIX=$(date +'%Y-%m-%d')",
+      "ARCHIVE_NAME=\"backup_${TIMESTAMP}.tar.gz\"",
+      "ARCHIVE_PATH=\"${BACKUP_DIR}/${ARCHIVE_NAME}\"",
+      "CHECKSUM_FILE=\"${ARCHIVE_PATH}.sha256\"",
+      "LOG_FILE=\"${LOG_DIR}/backup_${DATE_PREFIX}.log\"",
+      "mkdir -p \"${BACKUP_DIR}\" \"${LOG_DIR}\"",
+      "log() { local level=\"$1\"; local msg=\"$2\"; echo \"[$(date +'%Y-%m-%d %H:%M:%S')] [${level}] ${msg}\" | tee -a \"${LOG_FILE}\"; }",
+      "cleanup() { rm -rf \"${BACKUP_DIR}\"; }",
+      "trap cleanup EXIT",
+      "log \"INFO\" \"=== STARTING AUTOMATED BACKUP PROCEDURE ===\"",
+      "if [ ! -d \"${SOURCE_DIR}\" ]; then log \"ERROR\" \"Source directory ${SOURCE_DIR} missing!\"; exit 1; fi",
+      "log \"INFO\" \"Creating compressed archive: ${ARCHIVE_NAME}...\"",
+      "tar -czf \"${ARCHIVE_PATH}\" -C \"${SOURCE_DIR}\" .",
+      "log \"INFO\" \"Testing archive integrity...\"",
+      "tar -tzf \"${ARCHIVE_PATH}\" > /dev/null",
+      "sha256sum \"${ARCHIVE_PATH}\" > \"${CHECKSUM_FILE}\"",
+      "log \"INFO\" \"Uploading to S3...\"",
+      "aws s3 cp \"${ARCHIVE_PATH}\" \"s3://${S3_BUCKET}/backups/${DATE_PREFIX}/${ARCHIVE_NAME}\"",
+      "aws s3 cp \"${CHECKSUM_FILE}\" \"s3://${S3_BUCKET}/backups/${DATE_PREFIX}/${ARCHIVE_NAME}.sha256\"",
+      "log \"INFO\" \"Verifying object existence in S3...\"",
+      "aws s3 ls \"s3://${S3_BUCKET}/backups/${DATE_PREFIX}/${ARCHIVE_NAME}\"",
+      "log \"SUCCESS\" \"=== BACKUP COMPLETED SUCCESSFULLY ===\"",
+      "exit 0",
+      "EOF",
+      "chmod +x /opt/backup/backup.sh",
+      "ls -la /opt/backup/backup.sh"
+    ]
+  }
+}

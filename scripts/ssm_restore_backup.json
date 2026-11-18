@@ -1,0 +1,39 @@
+{
+  "InstanceIds": ["i-0235c395276dc0851"],
+  "DocumentName": "AWS-RunShellScript",
+  "Parameters": {
+    "commands": [
+      "cat << 'EOF' > /opt/backup/restore.sh",
+      "#!/bin/bash",
+      "set -euo pipefail",
+      "RESTORE_DIR=\"/var/data/restored\"",
+      "RESTORE_STAGING=\"/tmp/restore_staging\"",
+      "S3_BUCKET=\"cloud-backup-vault-9k6tfc\"",
+      "mkdir -p \"${RESTORE_STAGING}\" \"${RESTORE_DIR}\"",
+      "echo \"[INFO] Locating latest backup archive in s3://${S3_BUCKET}/backups/...\"",
+      "LATEST_BACKUP=$(aws s3 ls \"s3://${S3_BUCKET}/backups/\" --recursive | grep '.tar.gz$' | tail -n 1 | awk '{print $4}')",
+      "if [ -z \"${LATEST_BACKUP}\" ]; then echo \"[ERROR] No backup archive found in S3!\"; exit 1; fi",
+      "ARCHIVE_NAME=$(basename \"${LATEST_BACKUP}\")",
+      "echo \"[INFO] Found latest backup: ${LATEST_BACKUP}\"",
+      "echo \"[INFO] Downloading archive: ${ARCHIVE_NAME}...\"",
+      "aws s3 cp \"s3://${S3_BUCKET}/${LATEST_BACKUP}\" \"${RESTORE_STAGING}/${ARCHIVE_NAME}\"",
+      "echo \"[INFO] Downloading checksum: ${ARCHIVE_NAME}.sha256...\"",
+      "aws s3 cp \"s3://${S3_BUCKET}/${LATEST_BACKUP}.sha256\" \"${RESTORE_STAGING}/${ARCHIVE_NAME}.sha256\"",
+      "echo \"[INFO] Performing cryptographic SHA-256 verification...\"",
+      "cd \"${RESTORE_STAGING}\"",
+      "sha256sum --check \"${ARCHIVE_NAME}.sha256\"",
+      "echo \"[SUCCESS] Checksum verification PASSED! Zero data corruption.\"",
+      "echo \"[INFO] Extracting archive contents into ${RESTORE_DIR}...\"",
+      "tar -xzvf \"${RESTORE_STAGING}/${ARCHIVE_NAME}\" -C \"${RESTORE_DIR}\"",
+      "echo \"[INFO] Listing restored files:\"",
+      "ls -lh \"${RESTORE_DIR}\"",
+      "echo \"[INFO] Previewing restored database dump:\"",
+      "head -n 5 \"${RESTORE_DIR}/database_dump.sql\"",
+      "rm -rf \"${RESTORE_STAGING}\"",
+      "echo \"[SUCCESS] === DISASTER RECOVERY DRILL COMPLETED SUCCESSFULLY ===\"",
+      "EOF",
+      "chmod +x /opt/backup/restore.sh",
+      "/opt/backup/restore.sh"
+    ]
+  }
+}
